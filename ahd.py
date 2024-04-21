@@ -1,7 +1,7 @@
 """
 Utility functions for writing GHPython scripts
 Author: Anders Holden Deleuran
-Version: 200811
+Version: 230621
 """
 
 import time
@@ -26,7 +26,7 @@ class Timer(object):
         
     def stop(self):
         
-        # Print an return elapsed time
+        # Print and return elapsed time
         elapsedSeconds = time.time() - self.startTime
         elapsedMilliseconds = elapsedSeconds*1000
         print str(round(elapsedMilliseconds,3)) + " ms"
@@ -291,19 +291,24 @@ def buildDocString(globalsDict):
         
     # Add author, Rhino, and script version
     ds += "    Remarks:\n"
-    ds += "        Author: Anders Holden Deleuran (BIG IDEAS)\n"
+    ds += "        Author: Anders Holden Deleuran (BIG CPH)\n"
     ds += "        Rhino: " + str(rc.RhinoApp.Version) + "\n"
     ds += "        Version: " + str(datetime.date.today()).replace("-","")[2:] + "\n"
-    ds += '"""'
+    ds += '"""\n'
     
+    # Add names
+    ds += "\n"
+    ds += 'ghenv.Component.Name = "FooBar"\n'
+    ds += 'ghenv.Component.NickName = "FB"\n'
+
     print ds
     return ds
 
-def setParametersToDrawName(ghenv):
+def setParametersToDrawName():
     
     """ Set all canvas parameters to always draw name """
     
-    for obj in ghenv.Component.OnPingDocument().Objects:
+    for obj in gh.Instances.ActiveCanvas.Document.Objects:
         if obj.GetType().Namespace == "Grasshopper.Kernel.Parameters":
             obj.IconDisplayMode = gh.Kernel.GH_IconDisplayMode.name
             obj.ExpireSolution(True)
@@ -425,3 +430,60 @@ def ghSolutionRecompute(ghenv):
                 obj.ExpireSolution(False)
                 
     ghenv.Component.OnPingDocument().ScheduleSolution(1000,expireAllComponentsButThis)
+
+def getNeighbourIndex(indices,i,n):
+    
+    """ Get index n indices (can be negative) from i, wraps around start """
+    
+    if i+n > indices-1:
+        nID = i+n-indices
+    elif i+n < 0:
+        nID = i+n+indices
+    else:
+        nID = i+n
+        
+    return nID
+
+def schlickFalloff(x,a):
+    
+    """ Christophe Schlick's bias function (a = 0.0-1.0, 0.5 is linear) """
+    
+    y = x/((1/a-2)*(1-x)+1)
+    
+    return y
+
+def interpolateVectors(vecA,vecB,t):
+    
+    """ Interpolate between two vectors by 0.00-1.00 parameter """
+    
+    # Lerp components
+    x = t*(vecB.X-vecA.X)+vecA.X
+    y = t*(vecB.Y-vecA.Y)+vecA.Y
+    z = t*(vecB.Z-vecA.Z)+vecA.Z
+    
+    # Make and unitize vector 
+    vecAB = rc.Geometry.Vector3d(x,y,z)
+    vecAB.Unitize()
+    
+    # Lerp length
+    lenAB = t*(vecB.Length-vecA.Length)+vecA.Length
+    vecAB *= lenAB
+    
+    return vecAB
+
+def lerp(a,b,t):
+    
+    """ Linear interpolate a and b by t """
+    
+    return t*(b-a)+a
+
+def minimiseSliders():
+    
+    """ Minimise width of all sliders on active canvas """
+    
+    for obj in gh.Instances.ActiveCanvas.Document.Objects:
+        if type(obj) is gh.Kernel.Special.GH_NumberSlider:
+            b = obj.Attributes.Bounds
+            b.Width = 0
+            obj.Attributes.Bounds = b
+            obj.ExpireSolution(True)
