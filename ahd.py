@@ -1,5 +1,4 @@
 """
-Helloooooo
 Utility functions for writing GHPython scripts
 Author: Anders Holden Deleuran
 Version: 230621
