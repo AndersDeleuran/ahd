@@ -1,7 +1,7 @@
 """
 Utility functions for writing GHPython scripts
 Author: Anders Holden Deleuran
-Version: 230621
+Version: 250108
 """
 
 import time
@@ -12,8 +12,9 @@ import Grasshopper as gh
 import GhPython
 import datetime
 import rhinoscriptsyntax as rs
-from System.Drawing import Color
+import System.Drawing as sd
 import scriptcontext as sc
+
 
 class Timer(object):
     
@@ -169,7 +170,7 @@ def colorMeshFaces_V6(mesh,colors):
     
     """ Unwelds and color the faces of the mesh in place """
     
-    mesh.VertexColors.CreateMonotoneMesh(System.Drawing.Color.Black)
+    mesh.VertexColors.CreateMonotoneMesh(sd.Color.Black)
     mesh.Unweld(0,False)
     for i in range(mesh.Faces.Count):
         mesh.VertexColors.SetColor(mesh.Faces[i],colors[i])
@@ -321,28 +322,6 @@ def setNoTypeHint(ghenv):
         v.TypeHint = GhPython.Component.NoChangeHint()
     ghenv.Component.ExpireSolution(False)
 
-def setTemplateLayerColors():
-
-    """ Set Rhino layer colors to the AHD style """
-
-    # Set context to Rhino document and disable redraw
-    sc.doc = rc.RhinoDoc.ActiveDoc
-    rs.EnableRedraw(False)
-
-    # Set layer colors
-    for i,l in enumerate(rs.LayerNames()):
-        if i == 0:
-            rs.LayerColor (l,Color.FromArgb(255,105,105,105))   
-        elif i == 1:
-            rs.LayerColor (l,Color.FromArgb(255,255,0,90))    
-        elif i == 2:
-            rs.LayerColor (l,Color.FromArgb(255,70,190,190))   
-        elif i == 3:
-            rs.LayerColor (l,Color.FromArgb(255,0,85,255))
-        elif i == 4:
-            rs.LayerColor (l,Color.FromArgb(255,130,255,0))
-        elif i == 5:
-            rs.LayerColor (l,Color.FromArgb(255,190,190,190))
 
 def capValues(values,lower,upper):
     
@@ -471,11 +450,13 @@ def interpolateVectors(vecA,vecB,t):
     
     return vecAB
 
+
 def lerp(a,b,t):
     
     """ Linear interpolate a and b by t """
     
     return t*(b-a)+a
+
 
 def minimiseSliders():
     
@@ -487,3 +468,66 @@ def minimiseSliders():
             b.Width = 0
             obj.Attributes.Bounds = b
             obj.ExpireSolution(True)
+
+def setScribbleFont():
+    
+    """ Set font name and size of all scribbles """
+    
+    for obj in gh.Instances.ActiveCanvas.Document.Objects:
+        if type(obj) is gh.Kernel.Special.GH_Scribble:
+            obj.Font = sd.Font("Arial",int(20))
+            obj.ExpireSolution(False)
+
+def flipRhinoBackgroundColor():
+    
+    """ Flip Rhino viewport background color between light and dark """
+    
+    bv = 30
+    lv = 255
+    dark = sd.Color.FromArgb(255,bv,bv,bv)
+    light = sd.Color.FromArgb(255,lv,lv,lv)
+    if rc.ApplicationSettings.AppearanceSettings.ViewportBackgroundColor == dark:
+        rc.ApplicationSettings.AppearanceSettings.ViewportBackgroundColor = light
+    elif rc.ApplicationSettings.AppearanceSettings.ViewportBackgroundColor == light:
+        rc.ApplicationSettings.AppearanceSettings.ViewportBackgroundColor = dark
+
+def getRhinoBackgroundTopColor():
+    
+    """ Get active Rhino viewport display top left background color """
+    
+    # Get active Rhino document, display and fill modes
+    doc = rc.RhinoDoc.ActiveDoc
+    dim = doc.Views.ActiveView.ActiveViewport.DisplayMode
+    fim = dim.DisplayAttributes.FillMode
+    fbf = rc.Display.DisplayPipelineAttributes.FrameBufferFillMode
+    
+    # Get top left background color for default, render and solid/gradient modes
+    if fim == fbf.DefaultColor:
+        return rc.ApplicationSettings.AppearanceSettings.ViewportBackgroundColor
+    elif fim == fbf.Renderer:
+        return doc.RenderSettings.BackgroundColorTop
+    else:
+        return dim.DisplayAttributes.GetFill()[0]
+
+def setTemplateLayerColors():
+
+    """ Set Rhino layer colors to the AHD style """
+
+    # Set context to Rhino document and disable redraw
+    sc.doc = rc.RhinoDoc.ActiveDoc
+    rs.EnableRedraw(False)
+
+    # Set layer colors
+    for i,l in enumerate(rs.LayerNames()):
+        if i == 0:
+            rs.LayerColor (l,sd.Color.FromArgb(255,105,105,105))   
+        elif i == 1:
+            rs.LayerColor (l,sd.Color.FromArgb(255,255,0,90))    
+        elif i == 2:
+            rs.LayerColor (l,sd.Color.FromArgb(255,70,190,190))   
+        elif i == 3:
+            rs.LayerColor (l,sd.Color.FromArgb(255,0,85,255))
+        elif i == 4:
+            rs.LayerColor (l,sd.Color.FromArgb(255,130,255,0))
+        elif i == 5:
+            rs.LayerColor (l,sd.Color.FromArgb(255,190,190,190))
